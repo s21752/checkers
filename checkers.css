@@ -1,0 +1,29 @@
+body {
+	margin: 0px;
+}
+
+.container {
+	height: 100vh;
+	width: 100vh;
+}
+
+#checkBoard {
+  border: 10px outset peru;
+  display: flex;    
+  flex-wrap: wrap;
+}
+
+.field {
+	position: relative;
+}
+
+.fieldChild {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+}
+
+.field:hover ~p {
+	background-color: green !important;
+}

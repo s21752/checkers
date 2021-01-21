@@ -1,18 +1,82 @@
 body {
 	margin: 0px;
+	height: 100vh;
+	display: flex;
+	flex-flow: column;
+	flex-direction: column;
+	text-align: center;
 }
 
 .container {
-	height: 100vh;
-	width: 100vh;
 	display: flex;
 	flex-wrap: wrap;
+	  flex: 9;
+	  text-align: center;
+}
+
+.menu {
+	flex: 1;
+	display: flex;
+	margin-left: 16px;
+	margin-right: 16px;
+}
+
+.info {
+	font-size: 20px;
+	width: 33%;
+	margin: auto;
+}
+
+.visibility {
+	flex: none;
+}
+
+#secondaryMenu {
+	margin-bottom: 24px;
+}
+
+#checkboxes {
+		margin: auto;
+	flex: 1;
+	display: block;
+}
+
+#restart {
+	flex: 1;
+	margin: auto;
+	font-size: 20px; 
+	width: 50px; 
+	height: 50px;
+}
+
+#boardSizeForm {
+	flex: 1
+}
+
+#boardSize {
+	margin: auto;
 }
 
 #checkBoard {
   border: 10px outset peru;
   display: flex;    
   flex-wrap: wrap;
+  margin: auto !important;
+}
+
+#chessPieceContainer {
+	position: relative;
+}
+
+#chessPiece {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+}
+
+#crown {
+	left: 0px;
+	position: absolute;
 }
 
 .field {

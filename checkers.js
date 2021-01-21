@@ -2,16 +2,80 @@ class ChessPiece {
 	constructor(type) {
 		this.type = type;
 		this.isQueen = false;
+		this.piece = null;
+		this.size = null;
 	}
 
 	create(size) {
-		let chessPiece = document.createElement("div");
-		chessPiece.style.backgroundColor = this.type === "black" ? "yellow" : "pink";
-		chessPiece.style.height = (size) + "px";
-		chessPiece.style.width = (size) + "px";
+		this.size = size;
+		this.piece = document.createElement("div");
+		this.piece.id = "chessPieceContainer";
+		this.piece.style.height = (size) + "px";
+		this.piece.style.width = (size) + "px";
 
-		return chessPiece;
+		let chessPiece = document.createElement("canvas");
+		chessPiece.id = "chessPiece";
+		chessPiece.height = this.size * 1.2;
+		chessPiece.width = this.size * 1.2; 
+		if (chessPiece.getContext) {
+			var ctx = chessPiece.getContext('2d');
+			ctx.fillStyle = this.type === "white" ? 'rgb(255, 255, 255)' : 'rgb(0, 0, 0)';
+
+			var circle = new Path2D();
+			circle.arc(this.size/2, this.size/2, this.size / 2, 0, 2 * Math.PI);
+
+			ctx.fill(circle);
+
+			this.piece.appendChild(chessPiece);
+		}
+
+		if (this.isQueen) {
+			this.piece.appendChild(this.#getQueenSign());
+
+		}
+
+		return this.piece;
 	}
+
+	upgradeToQueen() {
+		this.isQueen = true;
+		this.piece.appendChild(this.#getQueenSign());
+	}
+
+	#getQueenSign() {
+		let canvas = document.createElement("canvas");
+		canvas.id = "crown";
+		canvas.height = this.size * 1.3;;
+		canvas.width = this.size * 1.3;;
+		canvas.style.top = this.size * -0.15 + "px";
+
+		if (canvas.getContext) {
+			var ctx = canvas.getContext('2d');
+
+			ctx.fillStyle = 'rgb(255, 233, 0)';
+
+			let size = this.size;
+
+			let sizeY = this.size - size * 0.2;
+
+			ctx.beginPath();
+			ctx.moveTo(size*0.03, sizeY*0.3);
+			ctx.lineTo(size/8, sizeY/2);
+			ctx.lineTo(size*0.25, sizeY*0.25);
+			ctx.lineTo(size * 0.35, sizeY/2);
+			ctx.lineTo(size * 0.5, sizeY * 0.2);
+			ctx.lineTo(size * 0.65, sizeY/2);
+			ctx.lineTo(size * (6/8), sizeY*0.25);
+			ctx.lineTo(size * (7/8), sizeY/2,);
+			ctx.lineTo(size - size*0.03, sizeY*0.3);
+			ctx.lineTo(size * 0.97, sizeY * 0.6);
+			ctx.quadraticCurveTo(size/2, sizeY*0.75, size * 0.03, sizeY*0.6);
+			ctx.fill();
+
+		//	ctx.fillRect(0, 0, this.size, this.size);
+	}
+	return canvas;
+}
 }
 
 class BlackChessPiece extends ChessPiece {
@@ -58,37 +122,37 @@ class Field {
 		this.field = this.#createFieldElement();
 	}
 
-	#redraw() {
+	redraw() {
 		this.field.style.backgroundColor = this.#fieldColor();
+		if (this.content == null)
+			this.child.innerText = showFieldNames ? Field.fieldIndexToBoardPlacement(this.x, this.y) : "";
 	}
 
 	#fieldColor() {
 		if(this.isChecked)
-			return "blue";
-
-		if(this.isPossibleMove && showPossibleMoves)
-			return "orange";
+			return "skyblue";
 
 		if (this.isTarget && showPossibleAttacks)
-			return "olive";
+			return "lightcoral";
 
 		if (this.isAttackPosition && showPossibleAttacks)
 			return "maroon";
+
+		if(this.isPossibleMove && showPossibleMoves)
+			return "steelblue";
 		
 		if (this.type === "white") 
-			return "white"; 
+			return "floralwhite"; 
 		else 
-			return "black";
+			return "dimgrey";
 	}
 
 	#createFieldElement() {
 		let field = document.createElement("div");
 		let index = this.x + this.y;
 		field.className = "field";
-		field.style.minHeight = this.dimen + "px";
-		field.style.minWidth = this.dimen + "px";
-		field.style.maxHeight = this.dimen + "px";
-		field.style.maxWidth = this.dimen + "px";
+		field.style.height = this.dimen + "px";
+		field.style.width = this.dimen + "px";
 		field.style.position = "relative";
 		field.style.backgroundColor = this.#fieldColor();
 
@@ -98,70 +162,80 @@ class Field {
 		field.appendChild(this.child);
 
 		let objectReference = this;
+		let clickedField = this;
 		field.addEventListener("click", function () {
-			if (objectReference.content != null || objectReference.isPossibleMove || objectReference.isAttackPosition) {
-				let wasSelfSelected = selectedField === Field.fieldIndexToBoardPlacement(objectReference.x, objectReference.y);
-				let tempContent = null;
-				let isAttack = objectReference.isAttackPosition;
-
-				let isMove = objectReference.isPossibleMove || isAttack;
-
-				if (selectedField !== "") {
-					let position = Field.boardPlacementToFieldIndex(selectedField);
-					let unselected = fields[position.x][position.y];
-
-					if (isMove) {
-						tempContent = unselected.content;
-					}
-
-					unselected.uncheck();
-					unselected.hidePossibleMoves();
-					unselected.hidePossibleAttacks();
-
-					if (!wasSelfSelected && isMove) {
-						unselected.changeContent(null);
+			if (clickedField.content != null && clickedField.content.isMyChessPiece()) {
+				if (clickedField.isChecked && !clickedField.isSecondAttack){
+					clickedField.uncheck();
+					clickedField.hidePossibleMoves();
+					clickedField.hidePossibleAttacks();
 					selectedField = "";
 				}
+				else if (selectedField === "") {
+					clickedField.check();
+					clickedField.showPossibleAttacks();
+					clickedField.showPossibleMoves();
+					selectedField = Field.fieldIndexToBoardPlacement(clickedField.x, clickedField.y);
+				} else {
+					let lastFieldPosition = Field.boardPlacementToFieldIndex(selectedField);
+					let lastField = fields[lastFieldPosition.x][lastFieldPosition.y];
 
-					if (isAttack) {
-						let posX = objectReference.x - ((objectReference.x - unselected.x) / 2);
-						let posY = objectReference.y - ((objectReference.y - unselected.y) / 2);
-
-						let removed = fields[posX][posY];
-						updateResult(removed.content);
-						removed.changeContent(null);
-					}
-
-					if ((objectReference.content != null && !objectReference.content.isMyChessPiece()) || objectReference.content == null){
-												console.log("object is: " + Field.fieldIndexToBoardPlacement(objectReference.x, objectReference.y));
-						if(!isAttack) {
-							endTurn();
-						}
-					}
-				}
-
-				if (!wasSelfSelected) {
-					if (tempContent != null) {
-						objectReference.changeContent(tempContent);
-
-						if (isAttack && objectReference.canAttack()) {
-							this.isSecondAttack = true;
-							objectReference.#performClick();
-							console.log("is attack and can attack, from field " + Field.fieldIndexToBoardPlacement(objectReference.x, objectReference.y));
-						} else if (isAttack) {
-							endTurn();
-						}
-					}
-					else if (this.isSecondAttack || (objectReference.content.isMyChessPiece())){
-						objectReference.check();
-						if (!this.isSecondAttack)
-							objectReference.showPossibleMoves();
-						objectReference.showPossibleAttacks();
-						this.isSecondAttack = false;
-						selectedField = Field.fieldIndexToBoardPlacement(objectReference.x, objectReference.y);
+					if (!lastField.isSecondAttack) {
+						lastField.uncheck();
+						lastField.hidePossibleAttacks();
+						lastField.hidePossibleMoves();
+						clickedField.check();
+						clickedField.showPossibleAttacks();
+						clickedField.showPossibleMoves();
+						selectedField = Field.fieldIndexToBoardPlacement(clickedField.x, clickedField.y);
 					}
 				}
+			}
 
+			if (clickedField.isPossibleMove) {
+				let lastFieldPosition = Field.boardPlacementToFieldIndex(selectedField);
+				let lastField = fields[lastFieldPosition.x][lastFieldPosition.y];
+				lastField.uncheck();
+				lastField.hidePossibleAttacks();
+				lastField.hidePossibleMoves();
+				clickedField.changeContent(lastField.content);
+
+				lastField.changeContent(null);
+				selectedField = "";
+
+				if ((clickedField.content instanceof WhiteChessPiece && clickedField.x == 0) || (clickedField.content instanceof BlackChessPiece && clickedField.x == fieldsPerSide - 1)) {
+					clickedField.content.upgradeToQueen();
+				}
+				endTurn();
+			}
+
+			if (clickedField.isAttackPosition) {
+				let lastFieldPosition = Field.boardPlacementToFieldIndex(selectedField);
+				let lastField = fields[lastFieldPosition.x][lastFieldPosition.y];
+				lastField.uncheck();
+				let enemyFieldToRemove = clickedField.enemyFieldToRemove(lastField.hidePossibleAttacks());
+
+				lastField.hidePossibleMoves();
+				clickedField.changeContent(lastField.content);
+				lastField.changeContent(null);
+				selectedField = "";
+
+				updateResult(enemyFieldToRemove.content);
+				enemyFieldToRemove.changeContent(null);
+
+				if (clickedField.canAttack()) {
+
+					clickedField.check();
+					clickedField.showPossibleAttacks();
+					selectedField = Field.fieldIndexToBoardPlacement(clickedField.x, clickedField.y);
+					clickedField.isSecondAttack = true;
+				} else {
+					clickedField.isSecondAttack = false;
+					if ((clickedField.content instanceof WhiteChessPiece && clickedField.x == 0) || (clickedField.content instanceof BlackChessPiece && clickedField.x == fieldsPerSide - 1)) {
+						clickedField.content.upgradeToQueen();
+					}
+					endTurn();
+				}
 			}
 		})
 
@@ -170,19 +244,32 @@ class Field {
 		return field;
 	}
 
-	#performClick() {
-		var clickEvent = new MouseEvent("click", {
-			"view": window,
-			"bubbles": true,
-			"cancelable": false
-		});
-		this.field.dispatchEvent(clickEvent);
+	enemyFieldToRemove(enemiesFields) {
+		if (enemiesFields.length == 1) return enemiesFields[0];
+
+		let closestEnemyIndex = 0;
+		let closestEnemyDistance = null;
+
+		let index = 0;
+		let currentField = this;
+		enemiesFields.forEach(function (enemyField) {
+			let currentFieldDistance = Math.sqrt(Math.pow((currentField.x - enemyField.x), 2) + Math.pow((currentField.y - enemyField.y), 2));
+			if (closestEnemyDistance > currentFieldDistance || closestEnemyDistance == null) {
+				closestEnemyIndex = index;
+				closestEnemyDistance = currentFieldDistance;
+			}
+			index++
+		})
+
+		return enemiesFields[closestEnemyIndex];
 	}
 
 	changeContent(content) {
 		this.content = content;
 		this.child.innerText = "";
 		this.child.innerHtml = "";
+		let fontRatio = fieldsPerSide == SIZE_BIG ? 0.35 : 0.3;
+		this.child.style.fontSize = (getDimension() / fieldsPerSide) * fontRatio + "px";
 
 		if (content == null) {
 			this.child.style.color = this.type === "white" ? "black" : "white";
@@ -193,63 +280,80 @@ class Field {
 		}
 
 		if(content instanceof ChessPiece) {
-			this.child.appendChild(content.create(this.dimen / 2));
+			this.child.appendChild(content.create(getDimension() / fieldsPerSide * 0.7));
 		}
+	}
+
+	redrawChessPiece() {
+		// if (this.content instanceof ChessPiece) {
+			this.changeContent(this.content);
+		// }
 	}
 
 	uncheck() {
 		this.isChecked = false;
-		this.#redraw();
+		this.redraw();
 	}
 
 	check() {
 		this.isChecked = true;
-		this.#redraw();
+		this.redraw();
 	}
 
 	setPossibleMove() {
 		this.isPossibleMove = true;
-		this.#redraw();
+		this.redraw();
 	}
 
 	unSetPossibleMove() {
 		this.isPossibleMove = false;
-		this.#redraw();
+		this.redraw();
 	}
 
 	setTarget() {
 		this.isTarget = true;
-		this.#redraw();
+		this.redraw();
 	}
 
 	unSetPossibleAttack() {
 		this.isTarget = false;
-		this.#redraw();
+		this.redraw();
 	}
 
 	showPossibleMoves() {
-		let moves = this.getPossibleMoves()
-		moves.forEach(function(position) {
-			let possibleMoveDestination = fields[position.x][position.y];
+		if (this.content instanceof ChessPiece && this.content.isQueen)
+			this.showPossibleQueenMoves();
+		else {
 
-			if (possibleMoveDestination.content == null)
-				possibleMoveDestination.setPossibleMove();
-		})
+			let moves = this.getPossibleMoves()
+			moves.forEach(function(position) {
+				let possibleMoveDestination = fields[position.x][position.y];
+				if (possibleMoveDestination.content == null)
+					possibleMoveDestination.setPossibleMove();
+			})
+		}
 	}
 
 	hidePossibleMoves() {
-		let moves = this.getPossibleMoves()
-		moves.forEach(function(position) {
-			let fieldToUncheck = fields[position.x][position.y];
-			fieldToUncheck.unSetPossibleMove();
-		})
+		if (this.content instanceof ChessPiece && this.content.isQueen)
+			this.hidePossibleQueenMoves();
+
+		else {
+
+			let moves = this.getPossibleMoves()
+			moves.forEach(function(position) {
+				let fieldToUncheck = fields[position.x][position.y];
+				fieldToUncheck.unSetPossibleMove();
+			})
+		}
 	}
 
-	getPossibleMoves() {
+	getPossibleMoves(allDirections = false) {
+
 		let possibleX = [];
-		if (this.x > 0)
+		if ((this.x > 0  && this.content instanceof WhiteChessPiece) || (allDirections && this.x > 0))
 			possibleX.push(this.x - 1);
-		if (this.x < fieldsPerSide - 1)
+		if ((this.x < fieldsPerSide - 1  && this.content instanceof BlackChessPiece) || (allDirections && this.x < fieldsPerSide - 1))
 			possibleX.push(this.x + 1);
 
 		let possibleY = [];
@@ -269,11 +373,151 @@ class Field {
 
 		return possibleMoves;
 	}
+
+	hidePossibleQueenMoves() {
+		let possibleMoves = this.getQueenPossibleMoves();
+
+		possibleMoves.forEach(function(position) {
+			let possibleMoveDestination = fields[position.x][position.y];
+			possibleMoveDestination.unSetPossibleMove();
+		})
+	}
+
+	showPossibleQueenMoves() {
+		let possibleMoves = this.getQueenPossibleMoves();
+
+		possibleMoves.forEach(function(position) {
+			let possibleMoveDestination = fields[position.x][position.y];
+			possibleMoveDestination.setPossibleMove();
+		})
+	}
+
+	getAllQueenMoves() {
+		let posX = this.x;
+		let posY = this.y;
+
+		let moves = [];
+
+		let currentField = this;
+
+		let possibleMovesTransformations = [-1, 1];
+		let encounteredEnemy = false;
+
+
+		possibleMovesTransformations.forEach(function (x) {
+			possibleMovesTransformations.forEach(function (y) {
+
+				let movesAxis = [];
+				for (let i = 1; i < fieldsPerSide; i++) {
+
+					posX = currentField.x + (i*x);
+					posY = currentField.y + (i*y);
+					if (posX >= 0 && posX < fieldsPerSide && posY >= 0 && posY < fieldsPerSide) {			
+						movesAxis.push ( { x: posX, y: posY});
+					} else {
+						break;
+					}
+				}
+				moves.push(movesAxis);
+			})
+		})
+
+		return moves;
+	}
+
+
+	getQueenPossibleMoves() {
+
+		let allMoves = this.getAllQueenMoves();
+
+		let possibleMoves = [];
+
+		allMoves.forEach(function(axis) {
+			for (let i = 0; i < axis.length; i++) {
+				let checkedField = fields[axis[i].x][axis[i].y];
+
+				if (checkedField.content instanceof ChessPiece) {
+					break;
+				} else {
+					possibleMoves.push(axis[i]);
+				}
+			}
+		})
+
+		return possibleMoves;
+	}
+
+	actOnEnemyField(attackFieldsAction = null, enemyFieldAction = null) {
+		let allMoves = this.getAllQueenMoves();
+
+		let attackFields = [];
+		let enemyPosition;
+
+		let enemyFields = [];
+
+		let currentField = this;
+		allMoves.forEach(function(axis) {
+			enemyPosition = null;
+			for (let i = 0; i < axis.length; i++) {
+				let checkedField = fields[axis[i].x][axis[i].y];
+
+				if (checkedField.content instanceof ChessPiece && checkedField.content.isEnemy(currentField.content)) {
+					if (enemyPosition == null) {
+						enemyPosition = checkedField;
+					} else {
+						break;
+					}
+				} else if (checkedField.content instanceof ChessPiece) {
+					break;
+				} else if (enemyPosition != null) {
+					attackFields.push(checkedField);
+					enemyFields.push(enemyPosition);
+					if (enemyFieldAction != null)
+						enemyFieldAction(enemyPosition);
+				}
+			}
+		})
+
+		attackFields.forEach(function (field) {
+			if (attackFieldsAction != null)
+				attackFieldsAction(field);
+		})
+
+		return enemyFields;
+	}
+
+	showPossibleQueenAttacks() {
+		this.actOnEnemyField(function (attackField) {
+			attackField.isAttackPosition = true;
+			attackField.redraw();
+		},
+		function (enemyField) {
+			enemyField.setTarget();
+		})
+	}
+
+	hidePossibleQueenAttacks() {
+		return this.actOnEnemyField(function (attackField) {
+			attackField.isAttackPosition = false;
+			attackField.redraw();
+		},
+		function (enemyField) {
+			enemyField.unSetPossibleAttack();
+		})
+	}
+
 	getEnemiesPositions() {
-		return this.getPossibleMoves().filter(position => fields[position.x][position.y].content instanceof ChessPiece && fields[position.x][position.y].content.isEnemy(this.content));
+		return this.getPossibleMoves(true).filter((position) => fields[position.x][position.y].content instanceof ChessPiece 
+			&& fields[position.x][position.y].content.isEnemy(this.content));
+	}
+
+	canQueenAttack() {
+		return this.actOnEnemyField().length > 0;
 	}
 
 	canAttack() {
+		if (this.content instanceof ChessPiece && this.content.isQueen)
+			return this.canQueenAttack();
 		let objectReference = this;
 		let canStillAttack = false;
 		this.getEnemiesPositions().some(function (position) {
@@ -291,41 +535,53 @@ class Field {
 	}
 
 	showPossibleAttacks() {
-		let objectReference = this;
-		this.getEnemiesPositions().forEach(function (position) {
+		if (this.content instanceof ChessPiece && this.content.isQueen)
+			return this.showPossibleQueenAttacks();
+		else {
+			let objectReference = this;
+			this.getEnemiesPositions().forEach(function (position) {
 
-			let coordinateX = position.x + (position.x - objectReference.x);
-			let coordinateY = position.y + (position.y - objectReference.y);
+				let coordinateX = position.x + (position.x - objectReference.x);
+				let coordinateY = position.y + (position.y - objectReference.y);
 
-			if (coordinateX >= 0 && coordinateX < fieldsPerSide && coordinateY >= 0 && coordinateY < fieldsPerSide) {
-				let attackField = fields[coordinateX][coordinateY];
-				if (attackField.content == null) {
-					fields[position.x][position.y].setTarget();
-					attackField.isAttackPosition = true;
-					attackField.#redraw();
+				if (coordinateX >= 0 && coordinateX < fieldsPerSide && coordinateY >= 0 && coordinateY < fieldsPerSide) {
+					let attackField = fields[coordinateX][coordinateY];
+					if (attackField.content == null) {
+						fields[position.x][position.y].setTarget();
+						attackField.isAttackPosition = true;
+						attackField.redraw();
+					}
 				}
-			}
-		})
+			})
+		}
 	}
 
 	hidePossibleAttacks() {
 		let objectReference = this;
+		let enemyFields = []
+		if (this.content instanceof ChessPiece && this.content.isQueen)
+			return this.hidePossibleQueenAttacks();
+		else {
+			this.getEnemiesPositions().forEach(function (position) {
+				let enemyField = fields[position.x][position.y];
 
-		this.getEnemiesPositions().forEach(function (position) {
-			let enemyField = fields[position.x][position.y];
+				let coordinateX = position.x + (position.x - objectReference.x);
+				let coordinateY = position.y + (position.y - objectReference.y);
 
-			let coordinateX = position.x + (position.x - objectReference.x);
-			let coordinateY = position.y + (position.y - objectReference.y);
-			
-			if (coordinateX >= 0 && coordinateX < fieldsPerSide && coordinateY >= 0 && coordinateY < fieldsPerSide) {
-				let attackField = fields[coordinateX][coordinateY];
-				if (attackField.isAttackPosition) {
-					enemyField.unSetPossibleAttack();
-					attackField.isAttackPosition = false;
-					attackField.#redraw();
+				if (coordinateX >= 0 && coordinateX < fieldsPerSide && coordinateY >= 0 && coordinateY < fieldsPerSide) {
+					let attackField = fields[coordinateX][coordinateY];
+					if (attackField.isAttackPosition) {
+						enemyFields.push(enemyField);
+
+						enemyField.unSetPossibleAttack();
+						attackField.isAttackPosition = false;
+						attackField.redraw();
+					}
 				}
-			}
-		})
+			})
+
+			return enemyFields;
+		}
 	}
 
 	static fieldIndexToBoardPlacement(x, y) {
@@ -334,33 +590,33 @@ class Field {
 
 	static boardPlacementToFieldIndex(place) {
 		return {
-			x: (fieldsPerSide - place.charAt(1)),
+			x: (fieldsPerSide - place.substring(1, place.length)),
 			y: (place.charCodeAt(0) - 65)
 		};
 	}
 }
 
-//////////////////////////////              VISIBILITY      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-var showFieldNames = true;
-var showPossibleMoves = true;
-var showPossibleAttacks = true;
+var showFieldNames = false;
+var showPossibleMoves = false;
+var showPossibleAttacks = false;
 
-const FIELDS_PER_SIDE = 12;
-var PIECES_PER_SIDE = 30;
+const SIZE_BIG = 12;
+const SIZE_SMALL = 8;
+var PIECES_PER_SIDE = 12;
 var BOARD_MARGIN = 16;
-//////////////////////////////              VISIBILITY      !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 var selectedField = "";
 var fields = [];
-var fieldsPerSide = FIELDS_PER_SIDE;
-var piecesPerSide = PIECES_PER_SIDE;
+var fieldsPerSide = SIZE_SMALL;
+var piecesPerSide = 12;
 var boardMargin = BOARD_MARGIN;
 var boardMaxDimension = getDimension();
 var whitePieces = [];
 var blackPieces = [];
 var currentPlayer = "white";
 
+setListeners();
 restartBoard();
 
 function endTurn() {
@@ -370,7 +626,7 @@ function endTurn() {
 		currentPlayer = "white";
 	}
 
-	document.getElementById("currentPlayer").innerText = currentPlayer;
+	document.getElementById("currentPlayer").innerText = "Current player is: " + currentPlayer;
 }
 
 function updateResult(removedPiece) {
@@ -385,15 +641,21 @@ function updateResult(removedPiece) {
 		else 
 			alert("White Pieces Won!!!");
 	}
+
+	document.getElementById("piecesQuantity").innerText = "Black pieces remaining: " + blackPieces.length +"\nWhite pieces remaining: " + whitePieces.length;
 }
 
 function restartBoard() {
-	fieldsPerSide = FIELDS_PER_SIDE;
-	piecesPerSide = PIECES_PER_SIDE;
+	removeBoard();
+	showFieldNames = false;
+	showPossibleMoves = false;
+	showPossibleAttacks = false;
 	boardMargin = BOARD_MARGIN;
 	fields = [];
 	whitePieces = [];
 	blackPieces = [];
+	currentPlayer = "white";
+	selectedField = "";
 
 	for (let i = 0; i < piecesPerSide; i++) {
 		whitePieces.push(new WhiteChessPiece());
@@ -432,21 +694,25 @@ function restartBoard() {
 			} 
 		})
 	})
+
+	let piecesQuantity = document.createElement("div");
+	piecesQuantity.id = "piecesQuantity";
+	piecesQuantity.className = "info";
+	piecesQuantity.innerText = "Black pieces remaining: " + blackPieces.length +"\nWhite pieces remaining: " + whitePieces.length;
+	document.getElementById("mainMenu").appendChild(piecesQuantity);
+	document.getElementById("checkShowMoves").checked = false;
+	document.getElementById("checkShowAttacks").checked = false;
+	document.getElementById("checkShowFieldNames").checked = false;
 }
 
 
 function drawCheckboard() {
-	let actualBoardDimension = boardMaxDimension;  // - boardMaxDimension / (fieldsPerSide + 1)
-
-
-	let board = createBoard(actualBoardDimension);
+	let board = createBoard(getDimension());
 	for (let i = 0; i < fieldsPerSide; i++) {
-		// create row
 		let row = [];
 
 		for (let j = 0; j < fieldsPerSide; j++) {
-			// create field     // i == rowIndex, j == columnIndex
-			let field = new Field(i, j, actualBoardDimension / fieldsPerSide);//createField(j + i, actualBoardDimension / fieldsPerSide);
+			let field = new Field(i, j, getDimension() / fieldsPerSide);
 
 			row.push(field);
 		}
@@ -462,9 +728,10 @@ function drawCheckboard() {
 
 	let currentPlayerText = document.createElement("div");
 	currentPlayerText.id = "currentPlayer";
-	currentPlayerText.innerText = "white";
+	currentPlayerText.innerText = "Current player is: " + currentPlayer;
+	currentPlayerText.className = "info";
 
-document.getElementById("container").appendChild(currentPlayerText);
+	document.getElementById("mainMenu").appendChild(currentPlayerText);
 	document.getElementById("container").appendChild(board);
 }
 
@@ -484,5 +751,65 @@ function createBoard(boardDimension) {
 }
 
 function getDimension() {
-	return Math.min(window.innerHeight, window.innerWidth) - 2 * boardMargin - 2 * 10;
+	let container = document.getElementById("container");
+	return Math.min(container.offsetHeight, container.offsetWidth) - 2 * boardMargin - 2 * 10;
+}
+
+function setListeners() {
+	document.getElementById("restart").onclick = function () {
+		document.getElementById("mainMenu").innerText = "";
+		restartBoard();
+
+	}
+
+	document.getElementById("checkShowMoves").addEventListener('change', (event) => {
+		showPossibleMoves = event.currentTarget.checked;
+		redrawFields();
+	})
+
+	document.getElementById("checkShowAttacks").addEventListener('change', (event) => {
+		showPossibleAttacks = event.currentTarget.checked;
+		redrawFields();
+	})
+
+	document.getElementById("checkShowFieldNames").addEventListener('change', (event) => {
+		showFieldNames = event.currentTarget.checked;
+		redrawFields();
+	})
+
+	let radio = document.forms.boardSize.boardSize;
+	let prev = null;
+	for (let i = 0; i < radio.length; i++) {
+		radio[i].addEventListener('change', function() {
+			if (this !== prev) {
+				prev = this;
+				fieldsPerSide = this.value === "small" ? SIZE_SMALL : SIZE_BIG;
+				piecesPerSide = fieldsPerSide == SIZE_SMALL ? 12 : 30;
+				document.getElementById("mainMenu").innerText = "";
+				restartBoard();
+			}
+		})
+	}
+
+	window.addEventListener('resize', function () {
+		let board = document.getElementById("checkBoard");
+		board.style.height = getDimension() + "px";
+		board.style.width = getDimension() + "px";
+		fields.forEach(function (row) {
+			row.forEach(function (field) {
+				field.field.style.height = getDimension() / fieldsPerSide + "px";
+				field.field.style.width = getDimension() / fieldsPerSide + "px";
+				field.redrawChessPiece();
+
+			})
+		})
+	})
+}
+
+function redrawFields() {
+	fields.forEach(function (row) {
+		row.forEach(function (field) {
+			field.redraw();
+		})
+	})
 }

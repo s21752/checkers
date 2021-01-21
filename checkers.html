@@ -6,7 +6,27 @@
 	<link rel="stylesheet" href="checkers.css" type="text/css" />
 </head>
 <body>
-	<div class="container" id="container" />
-	<script src="checkers.js"></script>
-</body>
-</html>
+	<div class="menu" id="mainMenu"></div>
+	<div class="container" id="container" > </div>
+	<div class="menu" id="secondaryMenu">
+		<div id="checkboxes">
+			<input class="visibility" type="checkbox" id="checkShowMoves" name="vehicle1" value="Moves">
+			<label for="checkShowMoves"> Show possible moves </label><br>
+			<input class="visibility" type="checkbox" id="checkShowAttacks" name="vehicle1" value="Attacks">
+			<label for="checkShowAttacks"> Show possible attacks </label><br>
+			<input class="visibility" type="checkbox" id="checkShowFieldNames" name="vehicle1" value="Names">
+			<label for="checkShowFieldNames"> Show field names </label><br>
+		</div>
+		<input id="restart" type="submit" value="RESTART"/>
+		<div id="boardSizeForm">
+			<form id="boardSize">
+				<div>Board size:</div> <br>
+				<input type="radio" id="small" name="boardSize" value="small" checked="true">
+				<label for="small">8x8 (12 pieces)</label><br>
+				<input type="radio" id="big" name="boardSize" value="big">
+				<label for="big">12x12 (30 pieces)</label><br>
+			</form>
+		</div>
+		<script src="checkers.js"></script>
+	</body>
+	</html>
